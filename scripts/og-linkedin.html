@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  *{margin:0;box-sizing:border-box}
+  html,body{width:1200px;height:630px;overflow:hidden}
+  body{display:flex;align-items:center;justify-content:center;
+       font-family:ui-monospace,'SF Mono','Menlo',monospace;
+       background:radial-gradient(1200px 900px at 72% -20%,#0c141d 0%,#05070a 62%)}
+  .card{width:1080px;height:500px;display:flex;flex-direction:column;background:#0a0e13;
+        border:1px solid #1c2530;border-radius:18px;overflow:hidden;
+        box-shadow:0 60px 140px -40px rgba(0,0,0,.85),0 0 0 1px rgba(87,217,163,.05) inset}
+  .bar{display:flex;align-items:center;gap:11px;padding:20px 26px;background:#0b1016;border-bottom:1px solid #161d26}
+  .dot{width:16px;height:16px;border-radius:50%}
+  .r{background:#ff5f57}.y{background:#febc2e}.g{background:#28c840}
+  .ttl{flex:1;text-align:center;color:#5c6a7a;font-size:18px;letter-spacing:.04em}
+  .body{flex:1;padding:42px 52px;display:flex;flex-direction:column;justify-content:center}
+  .p1{color:#57d9a3}.p2{color:#5c6a7a}.p3{color:#5cc8ff}.p4{color:#cdd6e4}
+  .prompt{font-size:24px;margin-bottom:18px}
+  .ok{font-size:21px;color:#57d9a3;margin-bottom:6px}
+  .dim{color:#5c6a7a}
+  .name{font-size:64px;font-weight:700;color:#57d9a3;letter-spacing:.05em;line-height:1.05;margin-top:14px}
+  .role{font-size:27px;font-weight:600;color:#f0c674;margin-top:12px}
+  .btn{margin-top:30px;display:inline-flex;align-items:center;gap:12px;align-self:flex-start;
+       color:#57d9a3;background:#0e141b;border:1px solid #57d9a3;border-radius:12px;
+       padding:16px 26px;font-size:26px;font-weight:700;letter-spacing:.02em;
+       box-shadow:0 0 34px -6px rgba(87,217,163,.55)}
+  .arr{color:#5cc8ff}
+  .foot{display:flex;align-items:center;justify-content:space-between;
+        padding:16px 52px;color:#5c6a7a;font-size:20px;border-top:1px solid #161d26}
+  .site{color:#5cc8ff}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="ttl">guest@yura — zsh — linkedin</span>
+      <span style="width:80px"></span>
+    </div>
+    <div class="body">
+      <div class="prompt"><span class="p1">guest@yura</span><span class="p2">:</span><span class="p3">~</span><span class="p2">$ </span><span class="p4">linkedin</span></div>
+      <div class="ok">✓ profile located <span class="dim">— confidence 99.98%</span></div>
+      <div class="name">YURA&nbsp;&nbsp;YUREV</div>
+      <div class="role">Senior PHP &amp; JavaScript Developer</div>
+      <div class="btn"><span class="arr">↗</span>&nbsp; open Yura on LinkedIn</div>
+    </div>
+    <div class="foot">
+      <span class="dim">connect · collaborate · hire</span>
+      <span class="site">yurev.uk/in</span>
+    </div>
+  </div>
+</body>
+</html>
