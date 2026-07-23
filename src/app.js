@@ -326,7 +326,9 @@ class TerminalCard extends React.Component {
     // stream a few playful "fetching from somewhere" log lines — some flashing by —
     // then drop in the content and a touch-friendly back nav.
     const tail = nav ? [{ kind:'blank' }, { kind:'nav' }] : [];
-    const seq = this.flavorSeq(key);
+    // Home is the main menu you keep returning to — replaying the boot-style
+    // loader every time gets old, so reveal the ANSI hero straight away.
+    const seq = key === 'home' ? [] : this.flavorSeq(key);
     this.setState({ lines: [{ kind:'cmd', text: cmd }], input:'', hi:null }, this.scrollTop);
 
     let i = 0;
