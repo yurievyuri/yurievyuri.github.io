@@ -1,5 +1,59 @@
 const h = React.createElement;
 
+// Glyph palette the ANSI hero flickers through while it "boots up" — block/box
+// characters that match the logo's own alphabet, so the scramble reads as noise
+// on the same CRT rather than random ASCII.
+const REVEAL_GLYPHS = '█▓▒░╬╫╪╳║═╗╝╔╚╣╠';
+const prefersReduced = () =>
+  typeof window !== 'undefined' && window.matchMedia &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// 80s-style "decode" reveal for the ANSI hero: every non-space glyph starts as
+// flickering noise and locks into its final character on a staggered, mostly
+// random schedule (a faint left-to-right bias) — so the logo wakes up chaotically
+// instead of snapping in. Remounts (via a changing `nonce` key) replay it; honours
+// prefers-reduced-motion by rendering the final art immediately.
+function AsciiReveal({ text }) {
+  const scramble = (s) =>
+    s.replace(/[^ \n]/g, () => REVEAL_GLYPHS[(Math.random() * REVEAL_GLYPHS.length) | 0]);
+
+  const [grid, setGrid] = React.useState(() =>
+    prefersReduced() ? text : scramble(text));
+
+  React.useEffect(() => {
+    if (prefersReduced()) { setGrid(text); return; }
+
+    const WINDOW = 1400;                     // total reveal time, ms
+    const rows = text.split('\n');
+    const cells = [];                        // one entry per non-space glyph
+    rows.forEach((row, r) => {
+      for (let c = 0; c < row.length; c++) {
+        if (row[c] === ' ') continue;
+        const bias = (c / Math.max(1, row.length)) * 0.25;
+        const lockAt = WINDOW * Math.min(1, bias + Math.pow(Math.random(), 0.7) * 0.9);
+        cells.push({ r, c, ch: row[c], lockAt });
+      }
+    });
+
+    const start = Date.now();
+    const id = setInterval(() => {
+      const t = Date.now() - start;
+      const out = rows.map((row) => row.split(''));
+      let done = true;
+      for (const cell of cells) {
+        if (t >= cell.lockAt) out[cell.r][cell.c] = cell.ch;
+        else { done = false; out[cell.r][cell.c] = REVEAL_GLYPHS[(Math.random() * REVEAL_GLYPHS.length) | 0]; }
+      }
+      setGrid(out.map((row) => row.join('')).join('\n'));
+      if (done) clearInterval(id);
+    }, 45);
+
+    return () => clearInterval(id);
+  }, [text]);
+
+  return grid;
+}
+
 class TerminalCard extends React.Component {
   state = { lines: [], input: '', bootDone: false, history: [], hi: null };
 
@@ -132,6 +186,8 @@ class TerminalCard extends React.Component {
     { tag:'boot', text:"waking up the hamsters powering the server…" },
     { tag:'info', text:"proving P ≠ NP in the background…", fast:true },
   ];
+
+  asciiSeq = 0;   // bumped on every home reveal so the ANSI hero remounts & replays
 
   scrollRef = React.createRef();
   inputRef = React.createRef();
@@ -291,7 +347,7 @@ class TerminalCard extends React.Component {
 
   welcomeLines() {
     return [
-      { kind:'ascii', text: this.ascii },
+      { kind:'ascii', text: this.ascii, nonce: ++this.asciiSeq },
       { kind:'blank' },
       { kind:'dim', text:"Software Developer · London · 10+ years · full-stack" },
       { kind:'blank' },
@@ -456,7 +512,8 @@ class TerminalCard extends React.Component {
       case 'nav': return this.navBlock(k);
       case 'banner': return h('pre', { key:k, style:{ color:C.green, margin:0, fontFamily:"'JetBrains Mono', monospace", lineHeight:1.2, fontSize:13.5, whiteSpace:'pre' } }, l.text);
       case 'ascii': return h('div', { key:k, style:{ overflowX:'auto', overflowY:'hidden', maxWidth:'100%' } },
-        h('pre', { style:{ color:C.green, margin:0, fontFamily:"'JetBrains Mono', monospace", lineHeight:1.05, fontSize:'clamp(4.5px, 1.7vw, 12px)', whiteSpace:'pre', textShadow:'0 0 18px rgba(87,217,163,.35)' } }, l.text));
+        h('pre', { style:{ color:C.green, margin:0, fontFamily:"'JetBrains Mono', monospace", lineHeight:1.05, fontSize:'clamp(4.5px, 1.7vw, 12px)', whiteSpace:'pre', textShadow:'0 0 18px rgba(87,217,163,.35)' } },
+          h(AsciiReveal, { key:'ascii-' + l.nonce, text: l.text })));
       case 'chips': return h('div', { key:k, style:{ display:'flex', gap:8, flexWrap:'wrap', margin:'2px 0' } },
         l.items.map((it, i) => h('span', { key:i, style:{ color:C.green, border:`1px solid ${C.border}`, borderRadius:6, padding:'4px 12px', fontSize:12.5, background:C.chip } }, it)));
       case 'cmd': return h('div', { key:k, style:{ whiteSpace:'pre-wrap', lineHeight:1.95, marginTop:2 } },
