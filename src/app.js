@@ -228,10 +228,11 @@ class TerminalCard extends React.Component {
   contactsLines() {
     return [
       { kind:'head', text:'contacts' },
-      { kind:'kv', label:'mobile', value:'+44 7933 838037', href:'tel:+447933838037' },
-      { kind:'kv', label:'email', value:'yurievyuri@live.com', href:'mailto:yurievyuri@live.com' },
-      { kind:'kv', label:'linkedin', value:'bit.ly/4yxdtE5', href:'https://bit.ly/4yxdtE5' },
-      { kind:'kv', label:'location', value:'London, SE22' },
+      { kind:'kv', label:'mobile', protect:'tel', d1:'+44 7933 ', d2:'838037', digits:'+447933838037' },
+      { kind:'kv', label:'email', protect:'email', user:'mail', domain:'yurev.uk' },
+      { kind:'kv', label:'website', value:'yurev.uk', href:'https://yurev.uk' },
+      { kind:'kv', label:'linkedin', value:'yurev.uk/in', href:'https://yurev.uk/in' },
+      { kind:'kv', label:'location', value:'UK' },
       { kind:'blank' },
       { kind:'dim', text:"available for senior full-stack & backend roles — reach out any time." },
     ];
@@ -263,9 +264,27 @@ class TerminalCard extends React.Component {
       case 'dim': return h('div', { key:k, style:{ color:C.dim, lineHeight:1.95, margin:'4px 0', maxWidth:770 } }, l.text);
       case 'bullet': return h('div', { key:k, style:{ display:'flex', gap:10, lineHeight:1.95, maxWidth:820, margin:'4px 0' } },
         h('span', { style:{ color:C.green } }, '▸'), h('span', { style:{ color:C.text, textWrap:'pretty' } }, l.text));
-      case 'kv': return h('div', { key:k, style:{ display:'flex', gap:14, lineHeight:1.95 } },
-        h('span', { style:{ color:C.dim, minWidth:112, display:'inline-block' } }, l.label),
-        l.href ? h('a', { href:l.href, target:'_blank', rel:'noreferrer', onClick:(e)=>e.stopPropagation(), style:{ color:C.blue } }, l.value) : h('span', { style:{ color:C.text } }, l.value));
+      case 'kv': {
+        // Anti-scrape: email/phone carry no raw mailto:/tel: in the DOM (assembled on
+        // click) and their visible text hides a decoy span, so textContent/regex
+        // harvesters get a broken value while humans read the correct one.
+        const decoy = (t) => h('span', { 'aria-hidden':'true', style:{ display:'none' } }, t);
+        let valNode;
+        if (l.protect === 'email') {
+          valNode = h('a', { href:'#', onClick:(e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href = 'mai'+'lto:' + l.user + '@' + l.domain; }, style:{ color:C.blue, cursor:'pointer' } },
+            l.user, decoy('.no-spam'), '@', l.domain);
+        } else if (l.protect === 'tel') {
+          valNode = h('a', { href:'#', onClick:(e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href = 'te'+'l:' + l.digits; }, style:{ color:C.blue, cursor:'pointer' } },
+            l.d1, decoy('000'), l.d2);
+        } else if (l.href) {
+          valNode = h('a', { href:l.href, target:'_blank', rel:'noreferrer', onClick:(e)=>e.stopPropagation(), style:{ color:C.blue } }, l.value);
+        } else {
+          valNode = h('span', { style:{ color:C.text } }, l.value);
+        }
+        return h('div', { key:k, style:{ display:'flex', gap:14, lineHeight:1.95 } },
+          h('span', { style:{ color:C.dim, minWidth:112, display:'inline-block' } }, l.label),
+          valNode);
+      }
       case 'skill': return h('div', { key:k, style:{ display:'flex', gap:14, margin:'7px 0', flexWrap:'wrap', alignItems:'baseline' } },
         h('span', { style:{ color:C.cyan, minWidth:118, display:'inline-block', fontWeight:500 } }, l.label),
         h('div', { style:{ display:'flex', gap:7, flexWrap:'wrap' } }, l.items.map((it,i) => h('span', { key:i, style:{ color:C.text, border:`1px solid ${C.border}`, borderRadius:5, padding:'2px 9px', fontSize:12.5, background:C.chip } }, it))));
