@@ -9,6 +9,16 @@ class TerminalCard extends React.Component {
     border:'#1c2530', chip:'#0e141b', chipH:'#131b24'
   };
 
+  // ANSI-shadow logo shown on the home hero once the loader clears.
+  ascii = [
+    "██╗   ██╗██╗   ██╗██████╗  █████╗     ██╗   ██╗██╗   ██╗██████╗ ███████╗██╗   ██╗",
+    "╚██╗ ██╔╝██║   ██║██╔══██╗██╔══██╗    ╚██╗ ██╔╝██║   ██║██╔══██╗██╔════╝██║   ██║",
+    " ╚████╔╝ ██║   ██║██████╔╝███████║     ╚████╔╝ ██║   ██║██████╔╝█████╗  ██║   ██║",
+    "  ╚██╔╝  ██║   ██║██╔══██╗██╔══██║      ╚██╔╝  ██║   ██║██╔══██╗██╔══╝  ╚██╗ ██╔╝",
+    "   ██║   ╚██████╔╝██║  ██║██║  ██║       ██║   ╚██████╔╝██║  ██║███████╗ ╚████╔╝ ",
+    "   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝       ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚══════╝  ╚═══╝  ",
+  ].join('\n');
+
   menu = [
     { name:'about',      desc:'who I am' },
     { name:'skills',     desc:'stack & tools' },
@@ -22,14 +32,120 @@ class TerminalCard extends React.Component {
 
   allCmds = ['help','home','about','skills','experience','projects','education','contacts','cv','menu','ls','whoami','clear','date'];
 
+  // Playful "fetching from all kinds of sources" loaders shown while a section
+  // opens. Each line: { tag, text, fast? } — `fast` lines flash by for effect.
+  // tags: ok · warn · info · boot · run (see the 'log' renderer for colours).
+  flavor = {
+    about: [
+      { tag:'run',  text:"SELECT bio FROM humans WHERE id = 'yura'", fast:true },
+      { tag:'ok',   text:"JOIN business ⋈ engineering ⋈ coffee  → 1 row" },
+      { tag:'warn', text:"bio contains trace amounts of legacy PHP" },
+      { tag:'ok',   text:"de-normalising 10 years into one paragraph…" },
+    ],
+    skills: [
+      { tag:'boot', text:"establishing neural-link handshake…" },
+      { tag:'run',  text:"calibrating cortical electrodes…", fast:true },
+      { tag:'ok',   text:"brain interface online · 128 channels" },
+      { tag:'run',  text:"mounting /mnt/hippocampus · /mnt/muscle-memory…", fast:true },
+      { tag:'ok',   text:"streaming skills from long-term memory & L2 cache" },
+      { tag:'warn', text:"skipping corrupted sector: high-school chemistry", fast:true },
+      { tag:'ok',   text:"recovered that one Stack Overflow answer from 2014" },
+    ],
+    experience: [
+      { tag:'run',  text:"querying vector matrices…", fast:true },
+      { tag:'boot', text:"pulling records from epoch servers across 2,048 reality slices…" },
+      { tag:'run',  text:"collapsing waveform to locate the correct timeline…", fast:true },
+      { tag:'ok',   text:"correct reality slice found — #1337" },
+      { tag:'ok',   text:"resolving data via magnetic-field readout…" },
+      { tag:'warn', text:"correcting cognitive bias in quantum fields…", fast:true },
+      { tag:'ok',   text:"coherence locked · decoherence 0.02%  (all refactored)" },
+    ],
+    projects: [
+      { tag:'run',  text:"GET /api/projects", fast:true },
+      { tag:'ok',   text:"↳ 200 OK · cache HIT · 12ms", fast:true },
+      { tag:'boot', text:"provisioning 42 servers across 5 regions…" },
+      { tag:'run',  text:"terraform apply --auto-approve", fast:true },
+      { tag:'ok',   text:"load balancers warm · autoscaling armed" },
+      { tag:'warn', text:"blaming DNS out of habit…", fast:true },
+      { tag:'info', text:"CI pipeline: green ✓  (this time)" },
+    ],
+    education: [
+      { tag:'boot', text:"connecting to MIRBIS registry…" },
+      { tag:'run',  text:"verifying identity @ RANEPA…", fast:true },
+      { tag:'ok',   text:"diploma hash matched — MBA ✓" },
+      { tag:'run',  text:"cross-checking degrees @ Plekhanov · Saratov…", fast:true },
+      { tag:'ok',   text:"3 diplomas verified · 0 forged" },
+    ],
+    contacts: [
+      { tag:'run',  text:"resolving yurev.uk…", fast:true },
+      { tag:'boot', text:"requesting security clearance @ MI6…" },
+      { tag:'run',  text:"cross-checking with MI5 · GCHQ · Kingsman…", fast:true },
+      { tag:'ok',   text:"U.N.C.L.E. background check passed ✓" },
+      { tag:'ok',   text:"opening secure channel  (Q Branch encryption)" },
+      { tag:'info', text:"reply SLA: usually < 24h — humans only" },
+    ],
+    cv: [
+      { tag:'run',  text:"POST /api/office-center/typing-pool", fast:true },
+      { tag:'boot', text:"waking 3,000 typists on floor 47…" },
+      { tag:'ok',   text:"typewriters warmed · ribbons loaded · coffee brewed" },
+      { tag:'run',  text:"dictating 10 years over the intercom…", fast:true },
+      { tag:'ok',   text:"typing at 180 WPM — now with autocorrect" },
+      { tag:'warn', text:"Brenda spilled coffee on page 2 — reprinting…", fast:true },
+      { tag:'ok',   text:"laser-printed · laminated · stapled · scanned to PDF" },
+      { tag:'info', text:"no forms, no trackers — just a download" },
+    ],
+    whoami: [
+      { tag:'run',  text:"whoami", fast:true },
+      { tag:'ok',   text:"reading /etc/passwd…", fast:true },
+      { tag:'ok',   text:"identity confirmed: yura" },
+    ],
+    help: [
+      { tag:'run',  text:"man yura", fast:true },
+      { tag:'ok',   text:"loading man pages… (short, promise)" },
+    ],
+    home: [
+      { tag:'run',  text:"sudo ./launch --profile yura", fast:true },
+      { tag:'boot', text:"pouring coffee · loading personality matrix…" },
+      { tag:'ok',   text:"caffeine level: optimal ☕" },
+      { tag:'run',  text:"npm install --save senior-dev", fast:true },
+      { tag:'warn', text:"388 vulnerabilities (all in other people's code)", fast:true },
+      { tag:'ok',   text:"rendering ANSI hero…" },
+    ],
+    menu: [
+      { tag:'run',  text:"REINDEX", fast:true },
+      { tag:'ok',   text:"pick a table below" },
+    ],
+    date: [
+      { tag:'run',  text:"ntpdate pool.ntp.org", fast:true },
+      { tag:'ok',   text:"clock synced… close enough" },
+    ],
+  };
+
+  // Generic gags sprinkled in at random for extra variety.
+  flavorExtra = [
+    { tag:'info', text:"still faster than a Windows update" },
+    { tag:'warn', text:"reticulating splines…", fast:true },
+    { tag:'warn', text:"dividing by zero… exception caught", fast:true },
+    { tag:'info', text:"buying more RAM…", fast:true },
+    { tag:'ok',   text:"summoning a senior dev… oh wait, that's me" },
+    { tag:'run',  text:"sudo make me a sandwich", fast:true },
+    { tag:'boot', text:"waking up the hamsters powering the server…" },
+    { tag:'info', text:"proving P ≠ NP in the background…", fast:true },
+  ];
+
   scrollRef = React.createRef();
   inputRef = React.createRef();
 
   componentDidMount() { this.runBoot(); }
-  componentDidUpdate() { const el = this.scrollRef.current; if (el) el.scrollTop = el.scrollHeight; }
-  componentWillUnmount() { clearTimeout(this.bt); }
+  // During boot the feed types itself out, so stick to the bottom. Once the
+  // session is live every command opens a fresh "page" (see run), so scrolling
+  // is driven explicitly — scrollTop on navigation, scrollBottom on appends.
+  componentDidUpdate() { if (!this.state.bootDone) this.scrollBottom(); }
+  componentWillUnmount() { clearTimeout(this.bt); clearTimeout(this.lt); clearTimeout(this.pt); }
 
   focusInput = () => { const el = this.inputRef.current; if (el) el.focus(); };
+  scrollTop = () => { const el = this.scrollRef.current; if (el) el.scrollTop = 0; };
+  scrollBottom = () => { const el = this.scrollRef.current; if (el) el.scrollTop = el.scrollHeight; };
   onInput = (e) => this.setState({ input: e.target.value });
 
   onKeyDown = (e) => {
@@ -51,7 +167,7 @@ class TerminalCard extends React.Component {
     const v = this.state.input.trim().toLowerCase(); if (!v) return;
     const m = this.allCmds.filter(c => c.startsWith(v));
     if (m.length === 1) this.setState({ input: m[0] });
-    else if (m.length > 1) this.setState(s => ({ lines: [...s.lines, { kind:'cmd', text:s.input }, { kind:'dim', text: m.join('   ') }, { kind:'blank' }] }));
+    else if (m.length > 1) this.setState(s => ({ lines: [...s.lines, { kind:'cmd', text:s.input }, { kind:'dim', text: m.join('   ') }, { kind:'blank' }] }), this.scrollBottom);
   }
 
   runBoot() {
@@ -60,11 +176,32 @@ class TerminalCard extends React.Component {
       { t:'[  ok  ] mounting /dev/experience  (10+ years)', c:'dimg' },
       { t:'[  ok  ] loading kernel modules  php · go · js · aws', c:'dimg' },
       { t:'[  ok  ] starting network interface  london.se22', c:'dimg' },
-      { t:'[  ok  ] authentication: guest access granted', c:'dimg' },
+      { t:'[  ok  ] clearance verified — DATA ACCESS GRANTED', c:'dimg' },
     ];
+    const CHAR = 7, GAP = 100;              // ~1.3× faster than the original 9ms / 130ms
+
+    // The very first line is a live progress bar that fills to 100% as the
+    // rest of the boot log streams in beneath it.
+    this.setState({ lines: [{ kind:'progress', pct: 0 }] });
+    const setBar = (p) => this.setState(s => {
+      const ls = s.lines.slice();
+      if (ls[0] && ls[0].kind === 'progress') ls[0] = { ...ls[0], pct: p };
+      return { lines: ls };
+    });
+    const est = seq.reduce((a, l) => a + l.t.length * CHAR + GAP, 300);
+    let pct = 0;
+    const tickBar = () => {
+      pct = Math.min(96, pct + (100 * 40 / est));   // creep toward ~96%, snap to 100 when done
+      setBar(pct);
+      this.pt = setTimeout(tickBar, 40);
+    };
+    tickBar();
+
     let i = 0;
     const typeLine = () => {
       if (i >= seq.length) {
+        clearTimeout(this.pt);
+        setBar(100);
         this.setState(s => ({ lines: [...s.lines, { kind:'blank' }] }));
         this.print(this.welcomeLines());
         this.setState({ bootDone: true }, () => this.focusInput());
@@ -76,8 +213,8 @@ class TerminalCard extends React.Component {
       const tick = () => {
         j++;
         this.setState(s => { const ls = s.lines.slice(); ls[ls.length-1] = { ...ls[ls.length-1], text: line.t.slice(0, j) }; return { lines: ls }; });
-        if (j < line.t.length) this.bt = setTimeout(tick, 9);
-        else { i++; this.bt = setTimeout(typeLine, 130); }
+        if (j < line.t.length) this.bt = setTimeout(tick, CHAR);
+        else { i++; this.bt = setTimeout(typeLine, GAP); }
       };
       tick();
     };
@@ -86,19 +223,36 @@ class TerminalCard extends React.Component {
 
   print(arr) { this.setState(s => ({ lines: [...s.lines, ...arr] })); }
 
+  // A random shuffle of the loader lines for one section, with an optional
+  // generic gag spliced in so no two visits feel identical.
+  flavorSeq(key) {
+    const pool = this.flavor[key];
+    if (!pool) return [];
+    const seq = pool.slice();
+    if (Math.random() < 0.6) {
+      const g = this.flavorExtra[Math.floor(Math.random() * this.flavorExtra.length)];
+      seq.splice(1 + Math.floor(Math.random() * seq.length), 0, g);
+    }
+    return seq;
+  }
+
   run(raw) {
     const cmd = (raw || '').trim();
     const c = cmd.toLowerCase();
-    if (cmd) this.setState(s => ({ history: [...s.history.filter(x => x !== cmd), cmd] }));
     const map = { '0':'home','1':'about','2':'skills','3':'experience','4':'projects','5':'education','6':'contacts','7':'cv','8':'clear' };
     const key = map[c] || c;
-    if (key === 'clear') { this.setState({ lines: [] }); return; }
-    let out;
+    if (cmd) this.setState(s => ({ history: [...s.history.filter(x => x !== cmd), cmd] }));
+
+    // Empty Enter keeps the current screen; clear wipes it — both terminal-native.
+    if (key === '') return;
+    clearTimeout(this.lt);
+    if (key === 'clear') { this.setState({ lines: [], input:'', hi:null }, this.scrollTop); return; }
+
+    let out, nav = true, clearLogs = false;
     switch (key) {
-      case '': out = []; break;
-      case 'home': out = this.welcomeLines(); break;
+      case 'home': out = this.welcomeLines(); nav = false; clearLogs = true; break;
+      case 'menu': case 'ls': out = [{ kind:'menu' }]; nav = false; break;
       case 'help': out = this.helpLines(); break;
-      case 'menu': case 'ls': out = [{ kind:'menu' }]; break;
       case 'about': out = this.aboutLines(); break;
       case 'skills': out = this.skillsLines(); break;
       case 'experience': out = this.experienceLines(); break;
@@ -109,17 +263,41 @@ class TerminalCard extends React.Component {
       case 'whoami': out = [{ kind:'text', text:'yura — senior php & javascript developer, london.' }]; break;
       case 'date': out = [{ kind:'dim', text: new Date().toString() }]; break;
       case 'sudo': out = [{ kind:'error', text:'permission denied: nice try 😉' }]; break;
-      default: out = [{ kind:'error', text:`command not found: ${cmd}` }, { kind:'dim', text:"type `help` to see available commands." }];
+      default: out = [{ kind:'error', text:`command not found: ${cmd}` }, { kind:'dim', text:"type `help` or tap a command below." }]; break;
     }
-    this.print([{ kind:'cmd', text: cmd }, ...out, { kind:'blank' }]);
+
+    // Every command opens a fresh page (clear), terminal-style: echo the command,
+    // stream a few playful "fetching from somewhere" log lines — some flashing by —
+    // then drop in the content and a touch-friendly back nav.
+    const tail = nav ? [{ kind:'blank' }, { kind:'nav' }] : [];
+    const seq = this.flavorSeq(key);
+    this.setState({ lines: [{ kind:'cmd', text: cmd }], input:'', hi:null }, this.scrollTop);
+
+    let i = 0;
+    const step = () => {
+      if (i < seq.length) {
+        const f = seq[i++];
+        this.setState(s => ({ lines: [...s.lines, { kind:'log', tag:f.tag, text:f.text }] }));
+        const d = f.fast ? (14 + Math.floor(Math.random() * 42)) : (130 + Math.floor(Math.random() * 220));
+        this.lt = setTimeout(step, d);
+      } else {
+        // Home clears its loader lines and reveals a clean ANSI hero;
+        // every other page keeps the echo + logs above the content.
+        this.setState(s => ({ lines: clearLogs ? [...out, ...tail] : [...s.lines, { kind:'blank' }, ...out, ...tail] }), this.scrollTop);
+      }
+    };
+    this.lt = setTimeout(step, seq.length ? 70 : 0);
   }
 
   welcomeLines() {
     return [
-      ...this.banner(),
+      { kind:'ascii', text: this.ascii },
       { kind:'blank' },
-      { kind:'text', text:"Senior full-stack developer — CRM platforms, dashboards & integrations across the US, UAE and UK." },
-      { kind:'dim', text:"Select a command below, click it, or type it and press Enter." },
+      { kind:'dim', text:"Software Developer · London · 10+ years · full-stack" },
+      { kind:'blank' },
+      { kind:'chips', items:['AWS','PHP','JavaScript','Go','Symfony','Laravel','React'] },
+      { kind:'blank' },
+      { kind:'dim', text:"Select a command below, tap it, or type it and press Enter." },
       { kind:'blank' },
       { kind:'menu' },
     ];
@@ -130,7 +308,7 @@ class TerminalCard extends React.Component {
     const top = '╭' + '─'.repeat(w) + '╮';
     const bot = '╰' + '─'.repeat(w) + '╯';
     const row = (t) => '│ ' + t.padEnd(w - 2) + ' │';
-    return [{ kind:'banner', text: [top, row('YURA  YUREV'), row('Senior PHP & JavaScript Developer'), row('London · 10+ years · full-stack'), bot].join('\n') }];
+    return [{ kind:'banner', text: [top, row('YURA  YUREV'), row('Software Developer'), row('London · 10+ years · full-stack'), bot].join('\n') }];
   }
 
   helpLines() {
@@ -200,13 +378,16 @@ class TerminalCard extends React.Component {
     const p = (name, desc, tags) => ({ kind:'proj', name, desc, tags });
     return [
       { kind:'head', text:'selected projects' },
-      p('telephony-platform', 'Asterisk + PBX unified with an in-house app', '[PHP · Asterisk]'),
-      p('whatsapp-crm', 'WhatsApp Business via Twilio, template & window compliance', '[PHP · JS · Twilio]'),
-      p('aws-migration', 'DigitalOcean → AWS, blue/green CI/CD, custom metrics', '[AWS · GitLab CI]'),
-      p('lambda-filesync', 'Go service automating cross-system file transfers', '[Go · Lambda]'),
-      p('kpi-dashboard', 'real-time KPIs for 500 users, modular widgets', '[React · Next.js · TS]'),
-      p('redis-job-queue', 'background jobs in pure PHP on Redis', '[PHP · Redis]'),
-      p('viewing-tracker', 'apartment-viewing tracker + PDF/SVG price lists', '[PHP · SVG]'),
+      p('crm-platform', 'architected a Symfony CRM core — DI, queues, DDD service layer — powering a 500-person company', '[Symfony · PHP · DDD]'),
+      p('cloud-migration', 'led DigitalOcean → AWS migration: EC2 · RDS · SQS · EventBridge, async processing, zero-downtime blue/green', '[AWS · GitLab CI]'),
+      p('infra-ops', 'provision & tune production/staging servers (Oracle Linux 9, Nginx, Docker Compose) and keep cloud infra healthy 24/7', '[Linux · Docker · Nginx]'),
+      p('full-sdlc', 'own the full software lifecycle — requirements → architecture → build → tests (PHPUnit, Playwright) → CI/CD → deploy → monitor', '[SDLC · TDD · CI/CD]'),
+      p('telephony-platform', 're-engineered Asterisk + PBX into one in-house platform for calls, routing & customer records', '[PHP · Asterisk]'),
+      p('kpi-dashboard', 'standalone React/Next.js dashboard — real-time KPIs, modular configurable widgets on a custom REST API', '[React · Next.js · TS]'),
+      p('observability', 'distributed tracing + structured logging (OpenTelemetry, Monolog) & custom CloudWatch metrics for live monitoring', '[OpenTelemetry · AWS]'),
+      p('whatsapp-crm', 'WhatsApp Business via Twilio — approved templates, 24h-window compliance, two-way CRM sync', '[PHP · JS · Twilio]'),
+      p('lambda-filesync', 'Go service on AWS Lambda automating cross-system file transfers; Go tooling to spin up platform copies fast', '[Go · Lambda]'),
+      p('redis-job-queue', 'custom job queue + task-queue/RPA engine in pure PHP on Redis, automating back-office at scale', '[PHP · Redis]'),
     ];
   }
 
@@ -217,7 +398,6 @@ class TerminalCard extends React.Component {
       b("MBA — Moscow International Higher Business School (MIRBIS)"),
       b("BA, Public & Business Administration — RANEPA (Russian Presidential Academy)"),
       b("BSc, Economics — Saratov Socio-Economic Institute (Plekhanov Russian University of Economics)"),
-      b("Project Management with Oracle Primavera P6 — professional course"),
       { kind:'blank' },
       { kind:'head', text:'languages' },
       { kind:'kv', label:'English', value:'full working proficiency' },
@@ -254,7 +434,31 @@ class TerminalCard extends React.Component {
     switch (l.kind) {
       case 'blank': return h('div', { key:k, style:{ height:10 } });
       case 'boot': return h('div', { key:k, style:{ color:C.dimg, whiteSpace:'pre-wrap', lineHeight:1.95 } }, l.text);
+      case 'progress': {
+        const width = 24;
+        const filled = Math.round((l.pct / 100) * width);
+        const label = (String(Math.round(l.pct)) + '%').padStart(4, ' ');
+        return h('div', { key:k, style:{ whiteSpace:'pre', lineHeight:1.95, fontSize:13.5, letterSpacing:'.5px' } },
+          h('span', { style:{ color:C.dim } }, '['),
+          h('span', { style:{ color:C.green } }, '█'.repeat(filled)),
+          h('span', { style:{ color:C.border } }, '░'.repeat(width - filled)),
+          h('span', { style:{ color:C.dim } }, '] '),
+          h('span', { style:{ color:C.green } }, label));
+      }
+      case 'log': {
+        const meta = { ok:['  ok  ', C.green], warn:[' warn ', C.amber], info:[' info ', C.cyan], boot:[' boot ', C.amber], run:[' .... ', C.dim] }[l.tag] || ['  ok  ', C.green];
+        return h('div', { key:k, style:{ whiteSpace:'pre-wrap', lineHeight:1.9, fontSize:13 } },
+          h('span', { style:{ color:C.dim } }, '['),
+          h('span', { style:{ color:meta[1], fontWeight:700 } }, meta[0]),
+          h('span', { style:{ color:C.dim } }, '] '),
+          h('span', { style:{ color:C.dimg } }, l.text));
+      }
+      case 'nav': return this.navBlock(k);
       case 'banner': return h('pre', { key:k, style:{ color:C.green, margin:0, fontFamily:"'JetBrains Mono', monospace", lineHeight:1.2, fontSize:13.5, whiteSpace:'pre' } }, l.text);
+      case 'ascii': return h('div', { key:k, style:{ overflowX:'auto', overflowY:'hidden', maxWidth:'100%' } },
+        h('pre', { style:{ color:C.green, margin:0, fontFamily:"'JetBrains Mono', monospace", lineHeight:1.05, fontSize:'clamp(4.5px, 1.7vw, 12px)', whiteSpace:'pre', textShadow:'0 0 18px rgba(87,217,163,.35)' } }, l.text));
+      case 'chips': return h('div', { key:k, style:{ display:'flex', gap:8, flexWrap:'wrap', margin:'2px 0' } },
+        l.items.map((it, i) => h('span', { key:i, style:{ color:C.green, border:`1px solid ${C.border}`, borderRadius:6, padding:'4px 12px', fontSize:12.5, background:C.chip } }, it)));
       case 'cmd': return h('div', { key:k, style:{ whiteSpace:'pre-wrap', lineHeight:1.95, marginTop:2 } },
         h('span', { style:{ color:C.green } }, 'guest@yura'), h('span', { style:{ color:C.dim } }, ':'),
         h('span', { style:{ color:C.blue } }, '~'), h('span', { style:{ color:C.dim } }, '$ '),
@@ -305,6 +509,7 @@ class TerminalCard extends React.Component {
     return h('div', { key:k, style:{ margin:'8px 0 4px', display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(216px, 1fr))', gap:8, maxWidth:730 } },
       this.menu.map((m, i) => h('button', {
         key:i,
+        onMouseDown: (e) => e.preventDefault(),
         onClick: (e) => { e.stopPropagation(); this.run(m.name); },
         onMouseEnter: (e) => { e.currentTarget.style.borderColor = C.green; e.currentTarget.style.background = C.chipH; },
         onMouseLeave: (e) => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = C.chip; },
@@ -313,6 +518,23 @@ class TerminalCard extends React.Component {
         h('span', { style:{ color:C.dim, fontWeight:700, width:12, display:'inline-block' } }, String(i + 1)),
         h('span', { style:{ color:C.cyan, minWidth:80, fontWeight:500 } }, m.name),
         h('span', { style:{ color:C.dim, fontSize:12.5 } }, m.desc))));
+  }
+
+  // Touch-friendly back nav shown at the foot of every section — so on mobile
+  // there's always something to tap to get home, without needing the keyboard.
+  navBlock(k) {
+    const C = this.C;
+    const btn = (label, cmd, primary) => h('button', {
+      key: label,
+      onMouseDown: (e) => e.preventDefault(),
+      onClick: (e) => { e.stopPropagation(); this.run(cmd); },
+      onMouseEnter: (e) => { e.currentTarget.style.borderColor = C.green; e.currentTarget.style.background = C.chipH; },
+      onMouseLeave: (e) => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = C.chip; },
+      style:{ cursor:'pointer', background:C.chip, border:`1px solid ${C.border}`, borderRadius:7, padding:'10px 16px', color: primary ? C.green : C.text, font:'inherit', fontSize:13, transition:'border-color .12s, background .12s' }
+    }, label);
+    return h('div', { key:k, style:{ display:'flex', gap:8, flexWrap:'wrap', margin:'16px 0 2px' } },
+      btn('≡  menu', 'menu', true),
+      btn('⌂  home', 'home'));
   }
 
   render() {

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Monochrome mask for Safari pinned tabs (fill color set by browser) -->
+  <polyline points="150,176 246,256 150,336" fill="none" stroke="#000"
+            stroke-width="46" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="286" y="312" width="112" height="44" rx="10" fill="#000"/>
+</svg>
