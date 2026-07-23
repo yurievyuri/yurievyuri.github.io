@@ -1,0 +1,42 @@
+@keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+@keyframes bootglow { from{opacity:0} to{opacity:1} }
+html,body{ margin:0; height:100%; background:#05070a; }
+a{ color:#5cc8ff; text-decoration:none; }
+a:hover{ color:#8ad4ff; }
+::selection{ background:#57d9a3; color:#05070a; }
+.term-scroll::-webkit-scrollbar{ width:10px; height:10px; }
+.term-scroll::-webkit-scrollbar-track{ background:transparent; }
+.term-scroll::-webkit-scrollbar-thumb{ background:#1c2530; border-radius:8px; }
+.term-scroll::-webkit-scrollbar-thumb:hover{ background:#2b3947; }
+input.term-input{ background:transparent; border:0; outline:none; caret-color:transparent; color:transparent; }
+
+/* Fallback shown when JavaScript is disabled or fails to load */
+.nojs-wrap{
+  min-height:100vh; display:flex; align-items:center; justify-content:center;
+  padding:24px; box-sizing:border-box;
+  font-family:'JetBrains Mono', ui-monospace, monospace;
+  background:radial-gradient(1200px 800px at 70% -10%, #0c141d 0%, #05070a 60%);
+}
+.nojs-card{
+  width:min(720px, 100%); background:#0a0e13; border:1px solid #1c2530;
+  border-radius:12px; overflow:hidden; color:#cdd6e4;
+  box-shadow:0 40px 120px -30px rgba(0,0,0,.8);
+}
+.nojs-bar{
+  display:flex; align-items:center; gap:8px; padding:12px 16px;
+  background:#0b1016; border-bottom:1px solid #161d26;
+}
+.nojs-bar i{ width:12px; height:12px; border-radius:50%; display:inline-block; }
+.nojs-bar .r{ background:#ff5f57; }
+.nojs-bar .y{ background:#febc2e; }
+.nojs-bar .g{ background:#28c840; }
+.nojs-bar span{ flex:1; text-align:center; color:#5c6a7a; font-size:12.5px; letter-spacing:.04em; }
+.nojs-body{ padding:26px 30px; line-height:1.9; }
+.nojs-body h1{ margin:0 0 2px; font-size:20px; color:#57d9a3; letter-spacing:.02em; }
+.nojs-body .role{ color:#f0c674; font-size:13px; text-transform:uppercase; letter-spacing:.12em; margin-bottom:14px; }
+.nojs-body p{ margin:10px 0; color:#cdd6e4; max-width:600px; }
+.nojs-body .kv{ display:flex; gap:14px; }
+.nojs-body .kv b{ color:#5c6a7a; font-weight:400; min-width:96px; display:inline-block; }
+.nojs-body a{ color:#5cc8ff; }
+.nojs-body .dl{ display:inline-block; margin-top:16px; color:#57d9a3; border-bottom:1px dashed #57d9a3; padding-bottom:2px; }
+.nojs-body .note{ color:#5c6a7a; font-size:12px; margin-top:18px; }
