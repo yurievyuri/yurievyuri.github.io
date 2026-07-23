@@ -232,7 +232,7 @@ class TerminalCard extends React.Component {
       { kind:'kv', label:'email', protect:'email', user:'mail', domain:'yurev.uk' },
       { kind:'kv', label:'website', value:'yurev.uk', href:'https://yurev.uk' },
       { kind:'kv', label:'linkedin', value:'yurev.uk/in', href:'https://yurev.uk/in' },
-      { kind:'kv', label:'location', value:'UK' },
+      { kind:'kv', label:'location', value:'London, UK' },
       { kind:'blank' },
       { kind:'dim', text:"available for senior full-stack & backend roles — reach out any time." },
     ];
