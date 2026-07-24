@@ -600,7 +600,7 @@ class TerminalCard extends React.Component {
     const C = this.C;
     const feedNode = h('div', {}, this.state.lines.map((l, i) => this.line(l, i)));
 
-    const promptRow = this.state.bootDone ? h('div', { style:{ position:'relative', display:'flex', alignItems:'center', marginTop:6, lineHeight:1.7 } },
+    const promptRow = this.state.bootDone ? h('div', { style:{ position:'relative', display:'flex', alignItems:'center', marginTop:18, lineHeight:1.7 } },
       h('span', { style:{ color:C.green, whiteSpace:'pre' } }, 'guest@yura'),
       h('span', { style:{ color:C.dim } }, ':'),
       h('span', { style:{ color:C.blue } }, '~'),
