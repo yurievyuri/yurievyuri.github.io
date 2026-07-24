@@ -591,7 +591,7 @@ class TerminalCard extends React.Component {
       onMouseLeave: (e) => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = C.chip; },
       style:{ cursor:'pointer', background:C.chip, border:`1px solid ${C.border}`, borderRadius:7, padding:'10px 16px', color: primary ? C.green : C.text, font:'inherit', fontSize:13, transition:'border-color .12s, background .12s' }
     }, label);
-    return h('div', { key:k, style:{ display:'flex', gap:8, flexWrap:'wrap', margin:'16px 0 2px' } },
+    return h('div', { key:k, style:{ display:'flex', gap:8, flexWrap:'wrap', margin:'8px 0 0' } },
       btn('≡  menu', 'menu', true),
       btn('⌂  home', 'home'));
   }
