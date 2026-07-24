@@ -435,17 +435,24 @@ class TerminalCard extends React.Component {
   projectsLines() {
     const p = (name, desc, tags) => ({ kind:'proj', name, desc, tags });
     return [
-      { kind:'head', text:'selected projects' },
-      p('crm-platform', 'architected a Symfony CRM core — DI, queues, DDD service layer — powering a 500-person company', '[Symfony · PHP · DDD]'),
-      p('cloud-migration', 'led DigitalOcean → AWS migration: EC2 · RDS · SQS · EventBridge, async processing, zero-downtime blue/green', '[AWS · GitLab CI]'),
-      p('infra-ops', 'provision & tune production/staging servers (Oracle Linux 9, Nginx, Docker Compose) and keep cloud infra healthy 24/7', '[Linux · Docker · Nginx]'),
-      p('full-sdlc', 'own the full software lifecycle — requirements → architecture → build → tests (PHPUnit, Playwright) → CI/CD → deploy → monitor', '[SDLC · TDD · CI/CD]'),
-      p('telephony-platform', 're-engineered Asterisk + PBX into one in-house platform for calls, routing & customer records', '[PHP · Asterisk]'),
-      p('kpi-dashboard', 'standalone React/Next.js dashboard — real-time KPIs, modular configurable widgets on a custom REST API', '[React · Next.js · TS]'),
-      p('observability', 'distributed tracing + structured logging (OpenTelemetry, Monolog) & custom CloudWatch metrics for live monitoring', '[OpenTelemetry · AWS]'),
-      p('whatsapp-crm', 'WhatsApp Business via Twilio — approved templates, 24h-window compliance, two-way CRM sync', '[PHP · JS · Twilio]'),
-      p('lambda-filesync', 'Go service on AWS Lambda automating cross-system file transfers; Go tooling to spin up platform copies fast', '[Go · Lambda]'),
-      p('redis-job-queue', 'custom job queue + task-queue/RPA engine in pure PHP on Redis, automating back-office at scale', '[PHP · Redis]'),
+      { kind:'head', text:'selected work — 10 years, from landing pages to platforms' },
+      { kind:'dim', text:'a cross-section by type of work, not a full list — ask me about any of these.' },
+      { kind:'blank' },
+      { kind:'head', text:'web & products' },
+      p('e-commerce', 'online stores end-to-end — catalogue, cart & checkout, payment gateways, stock & delivery integrations, admin panels', '[PHP · Symfony · MySQL]'),
+      p('portals', 'corporate sites, booking systems and client portals — brief → architecture → production; responsive, SEO-friendly, fast', '[Fullstack · JS]'),
+      p('crm-platform', 'architected a Symfony CRM core — DI, queues, DDD service layer — the daily tool of a 500-person company', '[Symfony · DDD]'),
+      p('telephony', 're-engineered Asterisk + PBX into one in-house platform for calls, routing & customer records', '[PHP · Asterisk]'),
+      { kind:'blank' },
+      { kind:'head', text:'apis & data' },
+      p('rest-apis', 'designed & shipped dozens of REST APIs — auth, versioning, rate limits, OpenAPI docs — powering web, mobile and partner integrations', '[REST · OpenAPI]'),
+      p('dashboards', 'databases turned into live dashboards — React/Next.js widgets on custom REST APIs, real-time KPIs for 500+ daily users', '[React · TS · SQL]'),
+      p('integrations', 'payments, WhatsApp/Twilio telephony, CRMs, ERPs, marketing tools — webhooks, queues and two-way sync that keeps running', '[APIs · Queues]'),
+      { kind:'blank' },
+      { kind:'head', text:'cloud & infrastructure' },
+      p('aws-infra', 'production infrastructure on AWS — EC2, RDS, S3, SQS, Lambda, CloudWatch — autoscaling, backups, monitoring, cost control', '[AWS · DevOps]'),
+      p('cloud-migration', 'led DigitalOcean → AWS migration — async processing, zero-downtime blue/green releases on GitLab CI', '[AWS · GitLab CI]'),
+      p('legacy-rescue', 'take over ageing codebases — stabilise, cover with tests, modernise module by module without stopping the business', '[Refactoring · TDD]'),
     ];
   }
 
