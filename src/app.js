@@ -600,7 +600,9 @@ class TerminalCard extends React.Component {
     const C = this.C;
     const feedNode = h('div', {}, this.state.lines.map((l, i) => this.line(l, i)));
 
-    const promptRow = this.state.bootDone ? h('div', { style:{ position:'relative', display:'flex', alignItems:'center', marginTop:18, lineHeight:1.7 } },
+    const promptRow = this.state.bootDone ? h('div', { style:{ marginTop:16 } },
+      h('div', { style:{ height:1, background:C.border, marginBottom:12 } }),
+      h('div', { style:{ position:'relative', display:'flex', alignItems:'center', lineHeight:1.7 } },
       h('span', { style:{ color:C.green, whiteSpace:'pre' } }, 'guest@yura'),
       h('span', { style:{ color:C.dim } }, ':'),
       h('span', { style:{ color:C.blue } }, '~'),
@@ -608,6 +610,7 @@ class TerminalCard extends React.Component {
       h('span', { style:{ color:C.text, whiteSpace:'pre' } }, this.state.input),
       h('span', { style:{ display:'inline-block', width:9, height:'1.15em', background:C.green, marginLeft:2, verticalAlign:'text-bottom', animation:'blink 1.05s step-end infinite' } }),
       h('input', { ref:this.inputRef, className:'term-input', value:this.state.input, onChange:this.onInput, onKeyDown:this.onKeyDown, spellCheck:false, autoComplete:'off', autoCapitalize:'off', style:{ position:'absolute', inset:0, width:'100%', fontFamily:'inherit', fontSize:'inherit', padding:0, margin:0 } })
+      )
     ) : null;
 
     return h('div', { style:{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', padding:24, boxSizing:'border-box', fontFamily:"'JetBrains Mono', ui-monospace, monospace", background:'radial-gradient(1200px 800px at 70% -10%, #0c141d 0%, #05070a 60%)' } },
