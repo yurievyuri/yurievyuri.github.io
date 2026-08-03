@@ -54,8 +54,186 @@ function AsciiReveal({ text }) {
   return grid;
 }
 
+// Splits multi-row ANSI art into its word blocks, cutting on runs of columns
+// that are blank in every row (the gap between "YURA" and "YUREV"). Lets the
+// hero restack the logo vertically when one line will not fit.
+function splitAsciiWords(rows, minGap) {
+  const width = Math.max.apply(null, rows.map((r) => r.length));
+  const pad = rows.map((r) => r + ' '.repeat(width - r.length));
+  const blank = [];
+  for (let c = 0; c < width; c++) blank.push(pad.every((r) => r[c] === ' '));
+
+  const words = [];
+  let c = 0;
+  while (c < width) {
+    if (blank[c]) { c++; continue; }
+    const start = c;
+    let end = c;                              // exclusive end of current word
+    while (c < width) {
+      if (!blank[c]) { end = ++c; continue; }
+      let g = c;
+      while (g < width && blank[g]) g++;
+      if (g - c >= minGap) break;             // gap wide enough → word ends
+      c = g;
+    }
+    words.push(pad.map((r) => r.slice(start, end)));
+  }
+  return words;
+}
+
+// Width of one monospace glyph, in em. Measured against the live font (falling
+// back to the classic 0.6em advance) so the hero can size itself to the exact
+// number of columns it has to fit.
+let glyphEmCache = null;                      // reset once the webfont swaps in
+function glyphWidthEm() {
+  if (typeof document === 'undefined') return 0.6;
+  if (glyphEmCache !== null) return glyphEmCache;
+  const probe = document.createElement('span');
+  probe.textContent = '█'.repeat(20);
+  probe.style.cssText = "position:absolute;visibility:hidden;white-space:pre;" +
+    "font-family:'JetBrains Mono', ui-monospace, monospace;font-size:100px;";
+  document.body.appendChild(probe);
+  const em = probe.getBoundingClientRect().width / 20 / 100;
+  document.body.removeChild(probe);
+  glyphEmCache = em > 0.1 && em < 2 ? em : 0.6;
+  return glyphEmCache;
+}
+
+const HERO_MAX_FONT = 12;                     // px — desktop cap for the logo
+const NARROW_QUERY = '(max-width: 640px)';    // phone-sized layout below this
+
+// Watches a media query and re-renders on change. Used instead of CSS media
+// queries because the whole UI is styled inline.
+function useMedia(query) {
+  const get = () => typeof window !== 'undefined' && window.matchMedia
+    ? window.matchMedia(query).matches : false;
+  const [matches, setMatches] = React.useState(get);
+  React.useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia(query);
+    const on = () => setMatches(mq.matches);
+    on();
+    if (mq.addEventListener) mq.addEventListener('change', on);
+    else mq.addListener(on);
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener('change', on);
+      else mq.removeListener(on);
+    };
+  }, [query]);
+  return matches;
+}
+
+// Measures the box it is given and reports the largest font size (capped at
+// `max`) at which `cols` monospace columns still fit. Shared by every fixed-
+// width piece of terminal art on the page.
+function useFitFont(cols, max) {
+  const ref = React.useRef(null);
+  const [size, setSize] = React.useState(max);
+
+  React.useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const apply = () => {
+      const avail = el.clientWidth;
+      if (!avail) return;
+      const next = Math.min(max, avail / (cols * glyphWidthEm()));
+      setSize((prev) => (Math.abs(prev - next) < 0.05 ? prev : next));
+    };
+
+    apply();
+    let ro = null;
+    if (typeof ResizeObserver !== 'undefined') { ro = new ResizeObserver(apply); ro.observe(el); }
+    else window.addEventListener('resize', apply);
+    // Re-measure once the webfont swaps in — its advance differs from the
+    // system monospace fallback used on the first paint.
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => { glyphEmCache = null; apply(); });
+    }
+
+    return () => {
+      if (ro) ro.disconnect();
+      else window.removeEventListener('resize', apply);
+    };
+  }, [cols, max]);
+
+  return [ref, size];
+}
+
+// Monospace art (the `about` name card) scaled down to whatever width it gets,
+// so it never overflows on a phone.
+function FitPre({ text, color, max }) {
+  const cols = Math.max.apply(null, text.split('\n').map((r) => r.length));
+  const [ref, size] = useFitFont(cols, max);
+  return h('div', { ref: ref, style: { width: '100%', overflow: 'hidden' } },
+    h('pre', {
+      style: {
+        color: color, margin: 0, fontFamily: "'JetBrains Mono', monospace",
+        lineHeight: 1.2, fontSize: size + 'px', whiteSpace: 'pre'
+      }
+    }, text));
+}
+
+// Picks the logo layout that renders largest in the space actually available:
+// the single-line version on desktop, the stacked one once the terminal gets
+// narrow — then scales the font so it fills that width without overflowing.
+function AsciiHero({ variants, nonce }) {
+  const wrapRef = React.useRef(null);
+  const [fit, setFit] = React.useState({ i: 0, size: HERO_MAX_FONT });
+
+  React.useLayoutEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+
+    const apply = () => {
+      const avail = el.clientWidth;
+      if (!avail) return;
+      const em = glyphWidthEm();
+      let best = { i: 0, size: 0 };
+      variants.forEach((v, i) => {
+        const size = Math.min(HERO_MAX_FONT, avail / (v.cols * em));
+        if (size > best.size + 0.01) best = { i: i, size: size };
+      });
+      setFit((prev) => (prev.i === best.i && Math.abs(prev.size - best.size) < 0.05 ? prev : best));
+    };
+
+    apply();
+    let ro = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(apply);
+      ro.observe(el);
+    } else {
+      window.addEventListener('resize', apply);
+    }
+    // Re-measure once the webfont swaps in — its advance differs from the
+    // system monospace fallback used on the first paint.
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => { glyphEmCache = null; apply(); });
+    }
+
+    return () => {
+      if (ro) ro.disconnect();
+      else window.removeEventListener('resize', apply);
+    };
+  }, [variants]);
+
+  const variant = variants[fit.i] || variants[0];
+  return h('div', { ref: wrapRef, style: { width: '100%', overflow: 'hidden' } },
+    h('pre', {
+      style: {
+        color: '#57d9a3', margin: 0, fontFamily: "'JetBrains Mono', monospace",
+        lineHeight: 1.05, fontSize: fit.size + 'px', whiteSpace: 'pre',
+        textShadow: '0 0 18px rgba(87,217,163,.35)'
+      }
+    }, h(AsciiReveal, { key: 'ascii-' + nonce + '-' + fit.i, text: variant.text })));
+}
+
 class TerminalCard extends React.Component {
-  state = { lines: [], input: '', bootDone: false, history: [], hi: null };
+  state = {
+    lines: [], input: '', bootDone: false, history: [], hi: null,
+    narrow: typeof window !== 'undefined' && window.matchMedia
+      ? window.matchMedia(NARROW_QUERY).matches : false,
+  };
 
   C = {
     text:'#cdd6e4', dim:'#5c6a7a', green:'#57d9a3', dimg:'#3d7a63',
@@ -64,14 +242,26 @@ class TerminalCard extends React.Component {
   };
 
   // ANSI-shadow logo shown on the home hero once the loader clears.
-  ascii = [
+  asciiRows = [
     "██╗   ██╗██╗   ██╗██████╗  █████╗     ██╗   ██╗██╗   ██╗██████╗ ███████╗██╗   ██╗",
     "╚██╗ ██╔╝██║   ██║██╔══██╗██╔══██╗    ╚██╗ ██╔╝██║   ██║██╔══██╗██╔════╝██║   ██║",
     " ╚████╔╝ ██║   ██║██████╔╝███████║     ╚████╔╝ ██║   ██║██████╔╝█████╗  ██║   ██║",
     "  ╚██╔╝  ██║   ██║██╔══██╗██╔══██║      ╚██╔╝  ██║   ██║██╔══██╗██╔══╝  ╚██╗ ██╔╝",
     "   ██║   ╚██████╔╝██║  ██║██║  ██║       ██║   ╚██████╔╝██║  ██║███████╗ ╚████╔╝ ",
     "   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝       ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚══════╝  ╚═══╝  ",
-  ].join('\n');
+  ];
+
+  // Same logo in two layouts — one line for wide terminals, name stacked over
+  // surname for narrow (mobile) ones. `cols` is the column count each layout
+  // needs, which is what AsciiHero sizes the font against.
+  asciiVariants = (() => {
+    const words = splitAsciiWords(this.asciiRows, 3);
+    const cols = (rows) => Math.max.apply(null, rows.map((r) => r.length));
+    const wide = { text: this.asciiRows.join('\n'), cols: cols(this.asciiRows) };
+    if (words.length < 2) return [wide];
+    const stackedRows = words.reduce((acc, w, i) => acc.concat(i ? [''] : [], w), []);
+    return [wide, { text: stackedRows.join('\n'), cols: cols(stackedRows) }];
+  })();
 
   menu = [
     { name:'about',      desc:'who I am' },
@@ -192,12 +382,29 @@ class TerminalCard extends React.Component {
   scrollRef = React.createRef();
   inputRef = React.createRef();
 
-  componentDidMount() { this.runBoot(); }
+  componentDidMount() {
+    this.runBoot();
+    // Phone layout switch. Everything here is styled inline, so the breakpoint
+    // lives in state rather than in a CSS media query.
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      this.mq = window.matchMedia(NARROW_QUERY);
+      this.onMq = () => this.setState({ narrow: this.mq.matches });
+      this.onMq();
+      if (this.mq.addEventListener) this.mq.addEventListener('change', this.onMq);
+      else this.mq.addListener(this.onMq);
+    }
+  }
   // During boot the feed types itself out, so stick to the bottom. Once the
   // session is live every command opens a fresh "page" (see run), so scrolling
   // is driven explicitly — scrollTop on navigation, scrollBottom on appends.
   componentDidUpdate() { if (!this.state.bootDone) this.scrollBottom(); }
-  componentWillUnmount() { clearTimeout(this.bt); clearTimeout(this.lt); clearTimeout(this.pt); }
+  componentWillUnmount() {
+    clearTimeout(this.bt); clearTimeout(this.lt); clearTimeout(this.pt);
+    if (this.mq && this.onMq) {
+      if (this.mq.removeEventListener) this.mq.removeEventListener('change', this.onMq);
+      else this.mq.removeListener(this.onMq);
+    }
+  }
 
   focusInput = () => { const el = this.inputRef.current; if (el) el.focus(); };
   scrollTop = () => { const el = this.scrollRef.current; if (el) el.scrollTop = 0; };
@@ -349,7 +556,7 @@ class TerminalCard extends React.Component {
 
   welcomeLines() {
     return [
-      { kind:'ascii', text: this.ascii, nonce: ++this.asciiSeq },
+      { kind:'ascii', variants: this.asciiVariants, nonce: ++this.asciiSeq },
       { kind:'blank' },
       { kind:'dim', text:"Software Developer · London · 10+ years · full-stack" },
       { kind:'blank' },
@@ -496,11 +703,12 @@ class TerminalCard extends React.Component {
 
   line(l, k) {
     const C = this.C;
+    const narrow = this.state.narrow;
     switch (l.kind) {
       case 'blank': return h('div', { key:k, style:{ height:10 } });
       case 'boot': return h('div', { key:k, style:{ color:C.dimg, whiteSpace:'pre-wrap', lineHeight:1.95 } }, l.text);
       case 'progress': {
-        const width = 24;
+        const width = narrow ? 16 : 24;       // the bar has to fit a phone too
         const filled = Math.round((l.pct / 100) * width);
         const label = (String(Math.round(l.pct)) + '%').padStart(4, ' ');
         return h('div', { key:k, style:{ whiteSpace:'pre', lineHeight:1.95, fontSize:13.5, letterSpacing:'.5px' } },
@@ -519,10 +727,8 @@ class TerminalCard extends React.Component {
           h('span', { style:{ color:C.dimg } }, l.text));
       }
       case 'nav': return this.navBlock(k);
-      case 'banner': return h('pre', { key:k, style:{ color:C.green, margin:0, fontFamily:"'JetBrains Mono', monospace", lineHeight:1.2, fontSize:13.5, whiteSpace:'pre' } }, l.text);
-      case 'ascii': return h('div', { key:k, style:{ overflowX:'auto', overflowY:'hidden', maxWidth:'100%' } },
-        h('pre', { style:{ color:C.green, margin:0, fontFamily:"'JetBrains Mono', monospace", lineHeight:1.05, fontSize:'clamp(4.5px, 1.7vw, 12px)', whiteSpace:'pre', textShadow:'0 0 18px rgba(87,217,163,.35)' } },
-          h(AsciiReveal, { key:'ascii-' + l.nonce, text: l.text })));
+      case 'banner': return h(FitPre, { key:k, text:l.text, color:C.green, max:13.5 });
+      case 'ascii': return h(AsciiHero, { key:k, variants: l.variants, nonce: l.nonce });
       case 'chips': return h('div', { key:k, style:{ display:'flex', gap:8, flexWrap:'wrap', margin:'2px 0' } },
         l.items.map((it, i) => h('span', { key:i, style:{ color:C.green, border:`1px solid ${C.border}`, borderRadius:6, padding:'4px 12px', fontSize:12.5, background:C.chip } }, it)));
       case 'cmd': return h('div', { key:k, style:{ whiteSpace:'pre-wrap', lineHeight:1.95, marginTop:2 } },
@@ -551,16 +757,20 @@ class TerminalCard extends React.Component {
         } else {
           valNode = h('span', { style:{ color:C.text } }, l.value);
         }
-        return h('div', { key:k, style:{ display:'flex', gap:14, lineHeight:1.95 } },
-          h('span', { style:{ color:C.dim, minWidth:112, display:'inline-block' } }, l.label),
-          valNode);
+        // Label column shrinks on a phone; the value wraps (and breaks long
+        // links) instead of pushing the row past the screen edge.
+        return h('div', { key:k, style:{ display:'flex', gap: narrow ? 10 : 14, lineHeight:1.95, flexWrap: narrow ? 'wrap' : 'nowrap' } },
+          h('span', { style:{ color:C.dim, minWidth: narrow ? 84 : 112, display:'inline-block', flexShrink:0 } }, l.label),
+          h('span', { style:{ minWidth:0, overflowWrap:'anywhere' } }, valNode));
       }
-      case 'skill': return h('div', { key:k, style:{ display:'flex', gap:14, margin:'7px 0', flexWrap:'wrap', alignItems:'baseline' } },
-        h('span', { style:{ color:C.cyan, minWidth:118, display:'inline-block', fontWeight:500 } }, l.label),
+      case 'skill': return h('div', { key:k, style:{ display:'flex', gap: narrow ? 4 : 14, margin:'7px 0', flexWrap:'wrap', alignItems:'baseline' } },
+        h('span', { style:{ color:C.cyan, minWidth: narrow ? '100%' : 118, display:'inline-block', fontWeight:500 } }, l.label),
         h('div', { style:{ display:'flex', gap:7, flexWrap:'wrap' } }, l.items.map((it,i) => h('span', { key:i, style:{ color:C.text, border:`1px solid ${C.border}`, borderRadius:5, padding:'2px 9px', fontSize:12.5, background:C.chip } }, it))));
-      case 'proj': return h('div', { key:k, style:{ display:'flex', gap:12, lineHeight:1.85, flexWrap:'wrap', margin:'7px 0' } },
-        h('span', { style:{ color:C.green, minWidth:168, display:'inline-block' } }, l.name),
-        h('span', { style:{ color:C.text, flex:1, minWidth:210 } }, l.desc),
+      // On a phone each project stacks — name, description, tags — rather than
+      // fighting for a 168px + 210px two-column row that does not exist.
+      case 'proj': return h('div', { key:k, style:{ display:'flex', gap: narrow ? 2 : 12, lineHeight:1.85, flexWrap:'wrap', margin: narrow ? '12px 0' : '7px 0' } },
+        h('span', { style:{ color:C.green, minWidth: narrow ? '100%' : 168, display:'inline-block' } }, l.name),
+        h('span', { style:{ color:C.text, flex:1, minWidth: narrow ? '100%' : 210, textWrap:'pretty' } }, l.desc),
         h('span', { style:{ color:C.dim, fontSize:12.5 } }, l.tags));
       case 'link': return h('div', { key:k, style:{ margin:'8px 0' } },
         h('a', { href:l.href || '#', download:l.download, target:l.download ? undefined : '_blank', rel:'noreferrer', onClick:(e)=>{ e.stopPropagation(); if (l.onClick) l.onClick(e); }, style:{ color:C.green, cursor:'pointer', borderBottom:`1px dashed ${C.green}`, paddingBottom:2 } }, l.text));
@@ -572,18 +782,20 @@ class TerminalCard extends React.Component {
 
   menuBlock(k) {
     const C = this.C;
-    return h('div', { key:k, style:{ margin:'8px 0 4px', display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(216px, 1fr))', gap:8, maxWidth:730 } },
+    const narrow = this.state.narrow;
+    return h('div', { key:k, style:{ margin:'8px 0 4px', display:'grid', gridTemplateColumns:`repeat(auto-fill, minmax(${narrow ? 150 : 216}px, 1fr))`, gap:8, maxWidth:730 } },
       this.menu.map((m, i) => h('button', {
         key:i,
         onMouseDown: (e) => e.preventDefault(),
         onClick: (e) => { e.stopPropagation(); this.run(m.name); },
         onMouseEnter: (e) => { e.currentTarget.style.borderColor = C.green; e.currentTarget.style.background = C.chipH; },
         onMouseLeave: (e) => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = C.chip; },
-        style:{ textAlign:'left', cursor:'pointer', background:C.chip, border:`1px solid ${C.border}`, borderRadius:7, padding:'10px 13px', color:C.text, font:'inherit', display:'flex', gap:11, alignItems:'baseline', transition:'border-color .12s, background .12s' }
+        style:{ textAlign:'left', cursor:'pointer', background:C.chip, border:`1px solid ${C.border}`, borderRadius:7, padding: narrow ? '11px 11px' : '10px 13px', color:C.text, font:'inherit', display:'flex', gap: narrow ? 8 : 11, alignItems:'baseline', flexWrap:'wrap', transition:'border-color .12s, background .12s' }
       },
-        h('span', { style:{ color:C.dim, fontWeight:700, width:12, display:'inline-block' } }, String(i + 1)),
-        h('span', { style:{ color:C.cyan, minWidth:80, fontWeight:500 } }, m.name),
-        h('span', { style:{ color:C.dim, fontSize:12.5 } }, m.desc))));
+        h('span', { style:{ color:C.dim, fontWeight:700, width:12, display:'inline-block', flexShrink:0 } }, String(i + 1)),
+        h('span', { style:{ color:C.cyan, minWidth: narrow ? 0 : 80, fontWeight:500 } }, m.name),
+        // The one-line hint is dead weight on a phone — the command name says it.
+        narrow ? null : h('span', { style:{ color:C.dim, fontSize:12.5 } }, m.desc))));
   }
 
   // Touch-friendly back nav shown at the foot of every section — so on mobile
@@ -605,39 +817,50 @@ class TerminalCard extends React.Component {
 
   render() {
     const C = this.C;
+    const narrow = this.state.narrow;
     const feedNode = h('div', {}, this.state.lines.map((l, i) => this.line(l, i)));
 
     const promptRow = this.state.bootDone ? h('div', { style:{ marginTop:16 } },
       h('div', { style:{ height:1, width:185, maxWidth:'100%', background:C.border, marginBottom:12 } }),
-      h('div', { style:{ position:'relative', display:'flex', alignItems:'center', lineHeight:1.7 } },
+      h('div', { style:{ position:'relative', display:'flex', alignItems:'center', lineHeight:1.7, overflow:'hidden' } },
       h('span', { style:{ color:C.green, whiteSpace:'pre' } }, 'guest@yura'),
       h('span', { style:{ color:C.dim } }, ':'),
       h('span', { style:{ color:C.blue } }, '~'),
       h('span', { style:{ color:C.dim, whiteSpace:'pre' } }, '$ '),
       h('span', { style:{ color:C.text, whiteSpace:'pre' } }, this.state.input),
       h('span', { style:{ display:'inline-block', width:9, height:'1.15em', background:C.green, marginLeft:2, verticalAlign:'text-bottom', animation:'blink 1.05s step-end infinite' } }),
-      h('input', { ref:this.inputRef, className:'term-input', value:this.state.input, onChange:this.onInput, onKeyDown:this.onKeyDown, spellCheck:false, autoComplete:'off', autoCapitalize:'off', style:{ position:'absolute', inset:0, width:'100%', fontFamily:'inherit', fontSize:'inherit', padding:0, margin:0 } })
+      h('input', { ref:this.inputRef, className:'term-input', value:this.state.input, onChange:this.onInput, onKeyDown:this.onKeyDown, spellCheck:false, autoComplete:'off', autoCapitalize:'off', // 16px on phones: anything smaller makes iOS Safari zoom the page on focus.
+        style:{ position:'absolute', inset:0, width:'100%', fontFamily:'inherit', fontSize: narrow ? 16 : 'inherit', padding:0, margin:0 } })
       )
     ) : null;
 
-    return h('div', { style:{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', padding:24, boxSizing:'border-box', fontFamily:"'JetBrains Mono', ui-monospace, monospace", background:'radial-gradient(1200px 800px at 70% -10%, #0c141d 0%, #05070a 60%)' } },
-      h('div', { style:{ width:'min(1120px, 100%)', height:'min(780px, 92vh)', display:'flex', flexDirection:'column', background:'#0a0e13', border:'1px solid #1c2530', borderRadius:12, boxShadow:'0 40px 120px -30px rgba(0,0,0,.8), 0 0 0 1px rgba(87,217,163,.04) inset', overflow:'hidden', position:'relative' } },
-        h('div', { style:{ display:'flex', alignItems:'center', gap:8, padding:'12px 16px', background:'#0b1016', borderBottom:'1px solid #161d26', flexShrink:0 } },
-          h('span', { style:{ width:12, height:12, borderRadius:'50%', background:'#ff5f57' } }),
-          h('span', { style:{ width:12, height:12, borderRadius:'50%', background:'#febc2e' } }),
-          h('span', { style:{ width:12, height:12, borderRadius:'50%', background:'#28c840' } }),
-          h('span', { style:{ flex:1, textAlign:'center', color:'#5c6a7a', fontSize:12.5, letterSpacing:'.04em' } }, 'guest@yura — zsh — 1120×780'),
-          h('span', { style:{ width:52 } })
+    // Keyboard-only hints are noise on a touch device, where there is no Tab
+    // and no ↑↓ history — keep the two that are still tappable/typable.
+    const hint = (key, label) => h('span', { key:key }, h('span', { style:{ color:'#57d9a3' } }, key), ' ' + label);
+    const hints = narrow
+      ? [hint('help', 'commands'), hint('clear', 'reset')]
+      : [hint('↑↓', 'history'), hint('Tab', 'autocomplete'), hint('help', 'list commands'), hint('clear', 'reset')];
+
+    return h('div', { style:{ minHeight:'100dvh', display:'flex', alignItems:'center', justifyContent:'center', padding: narrow ? 10 : 24, boxSizing:'border-box', fontFamily:"'JetBrains Mono', ui-monospace, monospace", background:'radial-gradient(1200px 800px at 70% -10%, #0c141d 0%, #05070a 60%)' } },
+      // minWidth:0 keeps the card from being stretched wider than the viewport
+      // by its own content — the ANSI hero measures this box to size itself.
+      // On a phone the window fills the screen (dvh, so the browser chrome
+      // collapsing does not clip the footer) instead of floating at 92vh.
+      h('div', { style:{ width:'min(1120px, 100%)', minWidth:0, height: narrow ? 'calc(100dvh - 20px)' : 'min(780px, 92vh)', display:'flex', flexDirection:'column', background:'#0a0e13', border:'1px solid #1c2530', borderRadius: narrow ? 10 : 12, boxShadow:'0 40px 120px -30px rgba(0,0,0,.8), 0 0 0 1px rgba(87,217,163,.04) inset', overflow:'hidden', position:'relative' } },
+        h('div', { style:{ display:'flex', alignItems:'center', gap:8, padding: narrow ? '10px 12px' : '12px 16px', background:'#0b1016', borderBottom:'1px solid #161d26', flexShrink:0 } },
+          h('span', { style:{ width:12, height:12, borderRadius:'50%', background:'#ff5f57', flexShrink:0 } }),
+          h('span', { style:{ width:12, height:12, borderRadius:'50%', background:'#febc2e', flexShrink:0 } }),
+          h('span', { style:{ width:12, height:12, borderRadius:'50%', background:'#28c840', flexShrink:0 } }),
+          h('span', { style:{ flex:1, minWidth:0, textAlign:'center', color:'#5c6a7a', fontSize: narrow ? 11.5 : 12.5, letterSpacing:'.04em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' } },
+            narrow ? 'guest@yura — zsh' : 'guest@yura — zsh — 1120×780'),
+          h('span', { style:{ width: narrow ? 8 : 52, flexShrink:0 } })
         ),
-        h('div', { ref:this.scrollRef, onClick:this.focusInput, className:'term-scroll', style:{ flex:1, overflowY:'auto', padding:'26px 30px 10px', fontSize:14, color:'#cdd6e4', cursor:'text' } },
+        h('div', { ref:this.scrollRef, onClick:this.focusInput, className:'term-scroll', style:{ flex:1, minWidth:0, overflowY:'auto', overflowX:'hidden', padding: narrow ? '16px 14px 10px' : '26px 30px 10px', fontSize: narrow ? 13 : 14, color:'#cdd6e4', cursor:'text', WebkitTextSizeAdjust:'100%' } },
           feedNode,
           promptRow
         ),
-        h('div', { style:{ flexShrink:0, padding:'9px 18px', background:'#0b1016', borderTop:'1px solid #161d26', color:'#5c6a7a', fontSize:11.5, letterSpacing:'.02em', display:'flex', gap:18, flexWrap:'wrap' } },
-          h('span', {}, h('span', { style:{ color:'#57d9a3' } }, '↑↓'), ' history'),
-          h('span', {}, h('span', { style:{ color:'#57d9a3' } }, 'Tab'), ' autocomplete'),
-          h('span', {}, h('span', { style:{ color:'#57d9a3' } }, 'help'), ' list commands'),
-          h('span', {}, h('span', { style:{ color:'#57d9a3' } }, 'clear'), ' reset')
+        h('div', { style:{ flexShrink:0, padding: narrow ? '8px 12px' : '9px 18px', background:'#0b1016', borderTop:'1px solid #161d26', color:'#5c6a7a', fontSize:11.5, letterSpacing:'.02em', display:'flex', gap: narrow ? 14 : 18, flexWrap:'wrap' } },
+          hints
         )
       )
     );
